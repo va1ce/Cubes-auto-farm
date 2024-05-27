@@ -98,13 +98,34 @@ class Start:
 
     async def mining(self, http_client: aiohttp.ClientSession):
         while True:
-            resp = await http_client.post("https://server.questioncube.xyz/game/mined", json={"token": self.token})
-            try:
-                resp_json = await resp.json()
-                return int(resp_json.get("drops_amount")), int(resp_json.get("energy")), int(resp_json.get("boxes_amount")), int(resp_json.get("mined_count"))
+            json_data = {
+                "token": self.token,
+                "isMusicMuted": False,
+                "isFromTG": True,
+                "isFromTonkeeper": "false"
+            }
+            resp = await http_client.post("https://server.questioncube.xyz/game/mined", json=json_data)
 
-            except:
-                await asyncio.sleep(random.uniform(config.MINING_DELAY[0]+5, config.MINING_DELAY[1]+5))
+            if "❓" in await resp.text():
+                    await self.unban()
+                    await self.mining()
+            else:
+                try:
+                    resp_json = await resp.json()
+                    return int(resp_json.get("drops_amount")), int(resp_json.get("energy")), int(resp_json.get("boxes_amount")), int(resp_json.get("mined_count"))
+
+                except:
+                    await asyncio.sleep(random.uniform(config.MINING_DELAY[0] + 5, config.MINING_DELAY[1] + 5))
+
+
+    async def unban(self):
+        async with self.client as client:
+            await client.send_message(chat_id='cubesonthewater_bot', text='/unban')
+            await asyncio.sleep(1)
+
+            async for m in client.get_chat_history(chat_id='cubesonthewater_bot', limit=1):
+                await m.click()
+            await asyncio.sleep(1)
 
     async def buy_energy(self, balance: int, http_client: aiohttp.ClientSession):
         if balance >= 250:
